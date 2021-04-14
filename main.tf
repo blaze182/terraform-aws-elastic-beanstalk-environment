@@ -506,6 +506,13 @@ resource "aws_elastic_beanstalk_environment" "default" {
   version_label          = var.version_label
   tags                   = local.tags
 
+  # Ignore new stack versions, those can be changed on Beanstalk managed updates
+  lifecycle {
+    ignore_changes = [
+      solution_stack_name
+    ]
+  }
+
   dynamic "setting" {
     for_each = local.elb_settings_final
     content {
