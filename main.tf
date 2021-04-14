@@ -593,6 +593,13 @@ resource "aws_elastic_beanstalk_environment" "default" {
   }
 
   setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "AMAZON_EB_S3_BUCKET"
+    value     = "elasticbeanstalk-${var.region}-${aws_security_group.default.owner_id}"
+    resource  = ""
+  }
+
+  setting {
     namespace = "aws:elasticbeanstalk:healthreporting:system"
     name      = "SystemType"
     value     = var.enhanced_reporting_enabled ? "enhanced" : "basic"
