@@ -332,6 +332,44 @@ locals {
   // https://github.com/terraform-providers/terraform-provider-aws/issues/3963
   tags = { for t in keys(module.label.tags) : t => module.label.tags[t] if t != "Name" && t != "Namespace" }
 
+  autoscaling_settings = [
+    {
+      namespace = "aws:autoscaling:trigger"
+      name      = "MeasureName"
+      value     = var.autoscale_measure_name
+    },
+    {
+      namespace = "aws:autoscaling:trigger"
+      name      = "Statistic"
+      value     = var.autoscale_statistic
+    },
+    {
+      namespace = "aws:autoscaling:trigger"
+      name      = "Unit"
+      value     = var.autoscale_unit
+    },
+    {
+      namespace = "aws:autoscaling:trigger"
+      name      = "LowerThreshold"
+      value     = var.autoscale_lower_bound
+    },
+    {
+      namespace = "aws:autoscaling:trigger"
+      name      = "LowerBreachScaleIncrement"
+      value     = var.autoscale_lower_increment
+    },
+    {
+      namespace = "aws:autoscaling:trigger"
+      name      = "UpperThreshold"
+      value     = var.autoscale_upper_bound
+    },
+    {
+      namespace = "aws:autoscaling:trigger"
+      name      = "UpperBreachScaleIncrement"
+      value     = var.autoscale_upper_increment
+    }
+  ]
+
   classic_elb_settings = [
     {
       namespace = "aws:elb:loadbalancer"
@@ -499,6 +537,8 @@ locals {
 
   # If the tier is "WebServer" add the elb_settings, otherwise exclude them
   elb_settings_final = var.tier == "WebServer" && var.environment_type != "SingleInstance" ? var.loadbalancer_type == "application" ? concat(local.alb_settings, local.generic_elb_settings) : concat(local.classic_elb_settings, local.generic_elb_settings) : []
+
+  autoscaling_settings_final = var.environment_type == "SingleInstance" ? [] : local.autoscaling_settings
 }
 
 #
@@ -754,53 +794,14 @@ resource "aws_elastic_beanstalk_environment" "default" {
 
   ###=========================== Autoscale trigger ========================== ###
 
-  setting {
-    namespace = "aws:autoscaling:trigger"
-    name      = "MeasureName"
-    value     = var.autoscale_measure_name
-    resource  = ""
-  }
-
-  setting {
-    namespace = "aws:autoscaling:trigger"
-    name      = "Statistic"
-    value     = var.autoscale_statistic
-    resource  = ""
-  }
-
-  setting {
-    namespace = "aws:autoscaling:trigger"
-    name      = "Unit"
-    value     = var.autoscale_unit
-    resource  = ""
-  }
-
-  setting {
-    namespace = "aws:autoscaling:trigger"
-    name      = "LowerThreshold"
-    value     = var.autoscale_lower_bound
-    resource  = ""
-  }
-
-  setting {
-    namespace = "aws:autoscaling:trigger"
-    name      = "LowerBreachScaleIncrement"
-    value     = var.autoscale_lower_increment
-    resource  = ""
-  }
-
-  setting {
-    namespace = "aws:autoscaling:trigger"
-    name      = "UpperThreshold"
-    value     = var.autoscale_upper_bound
-    resource  = ""
-  }
-
-  setting {
-    namespace = "aws:autoscaling:trigger"
-    name      = "UpperBreachScaleIncrement"
-    value     = var.autoscale_upper_increment
-    resource  = ""
+  dynamic "setting" {
+    for_each = local.autoscaling_settings_final
+    content {
+      namespace = setting.value["namespace"]
+      name      = setting.value["name"]
+      value     = setting.value["value"]
+      resource  = ""
+    }
   }
 
   ###=========================== Logging ========================== ###
